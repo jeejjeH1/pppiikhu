@@ -1,0 +1,550 @@
+<title>بنفش، سفید و گولم</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lalezar&family=Vazirmatn:wght@400;600;800&display=swap">
+<style>
+/* Layout: one wide split stage (dark violet world vs pale mauve world), controls under it, then story ideas in a two-column grid. Single deliberate dark look. */
+:root {
+  --ink: #120e18;
+  --ink-2: #1c1626;
+  --line: #3a2f4a;
+  --text: #ece6f3;
+  --muted: #a99bbb;
+  --violet: #a259ff;
+  --mauve: #d8c3c6;
+  --pink: #e6a6c8;
+  --gold: #d9a441;
+  --display: "Lalezar", "Vazirmatn", Tahoma, sans-serif;
+  --body: "Vazirmatn", Tahoma, "Segoe UI", sans-serif;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  background: var(--ink);
+  color: var(--text);
+  font-family: var(--body);
+  font-size: 16px;
+  line-height: 1.8;
+  margin: 0;
+}
+.wrap {
+  max-width: 1040px;
+  margin: 0 auto;
+  padding-inline: 16px;
+  padding-block: 28px 56px;
+  display: grid;
+  gap: 28px;
+}
+header { display: grid; gap: 4px; }
+h1 {
+  font-family: var(--display);
+  font-weight: 400;
+  font-size: clamp(2rem, 6vw, 3.2rem);
+  line-height: 1.2;
+  margin: 0;
+  text-wrap: balance;
+}
+h1 .v { color: var(--violet); }
+h1 .w { color: var(--mauve); }
+h1 .g { color: #c3a996; }
+.lede { color: var(--muted); margin: 0; max-width: 62ch; }
+
+.stage {
+  position: relative;
+  border-radius: 14px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  aspect-ratio: 16 / 9;
+  max-width: 100%;
+  background: var(--ink-2);
+}
+.stage svg { display: block; width: 100%; height: 100%; }
+
+.bubble {
+  position: absolute;
+  top: 5%;
+  max-width: 38%;
+  padding: 8px 14px;
+  border-radius: 14px;
+  font-weight: 600;
+  font-size: clamp(0.75rem, 2.2vw, 1.05rem);
+  line-height: 1.5;
+  opacity: 0;
+  transform: translateY(6px) scale(.96);
+  transition: opacity .25s ease, transform .25s ease;
+  pointer-events: none;
+}
+.bubble.show { opacity: 1; transform: none; }
+.bubble.b-violet { right: 5%; background: #241a33; color: #f1e6ff; border: 1.5px solid var(--violet); box-shadow: 0 0 18px rgba(162, 89, 255, .45); }
+.bubble.b-golem { left: 54%; top: 3%; max-width: 32%; background: #2b2320; color: #f3e9e1; border: 1.5px solid #c3a996; box-shadow: 0 0 14px rgba(255,255,255,.25); }
+.bubble.b-white { left: 5%; background: #fbf7f4; color: #2a1f22; border: 1.5px solid #bfa3a8; }
+
+.controls { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+button {
+  font-family: var(--body);
+  font-size: 1rem;
+  font-weight: 600;
+  padding: 10px 22px;
+  border-radius: 999px;
+  border: 1.5px solid var(--violet);
+  background: var(--violet);
+  color: #fff;
+  cursor: pointer;
+}
+button.ghost { background: transparent; color: var(--text); border-color: var(--line); }
+button:focus-visible { outline: 3px solid var(--pink); outline-offset: 3px; }
+button:disabled { opacity: .55; cursor: default; }
+.status { color: var(--muted); font-size: .9rem; }
+
+.refs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+.ref { display: grid; grid-template-columns: 72px minmax(0, 1fr); gap: 12px; align-items: center; }
+.ref img { width: 72px; height: 72px; border-radius: 10px; object-fit: cover; border: 1px solid var(--line); }
+.ref b { display: block; }
+.ref span { color: var(--muted); font-size: .88rem; line-height: 1.6; }
+
+h2 { font-family: var(--display); font-weight: 400; font-size: 1.7rem; margin: 0; }
+.ideas { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.idea {
+  border-top: 2px solid var(--line);
+  padding-top: 12px;
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+.idea h3 { margin: 0; font-size: 1.1rem; }
+.idea p { margin: 0; color: var(--muted); }
+.idea .tag { font-size: .8rem; color: var(--pink); letter-spacing: .02em; }
+.idea:nth-child(odd) { border-top-color: var(--violet); }
+.idea:nth-child(even) { border-top-color: var(--mauve); }
+
+@media (max-width: 860px) {
+  .refs { grid-template-columns: 1fr; }
+}
+@media (max-width: 640px) {
+  .refs, .ideas { grid-template-columns: 1fr; }
+}
+
+/* ---------- idle animation ---------- */
+.part { transform-box: fill-box; }
+#c1-body, #c2-body { transform-box: fill-box; transform-origin: 50% 100%; animation: breathe 4.2s ease-in-out infinite; }
+#c2-body { animation-delay: -1.6s; }
+#c1-head, #c2-head { transform-box: fill-box; transform-origin: 50% 85%; }
+#c1-hair-tips { transform-box: fill-box; transform-origin: 50% 0%; animation: sway 5s ease-in-out infinite; }
+#c1-eyes { transform-box: fill-box; transform-origin: 50% 50%; animation: blink 5.5s infinite; }
+#c2-glint { animation: glint 6s ease-in-out infinite; }
+#aura { transform-box: fill-box; transform-origin: 50% 50%; animation: aura 3.6s ease-in-out infinite; }
+.float { transform-box: fill-box; transform-origin: 50% 50%; animation: float 6s ease-in-out infinite; }
+.float.f2 { animation-duration: 7.5s; animation-delay: -2s; }
+.float.f3 { animation-duration: 5.2s; animation-delay: -3.5s; }
+#c2-pin { animation: pin 4s ease-in-out infinite; }
+#g-body { transform-box: fill-box; transform-origin: 50% 100%; animation: breathe 6s ease-in-out infinite; animation-delay: -3s; }
+#g-eyes { animation: eyes 3s ease-in-out infinite; }
+#g-logo { transform-box: fill-box; transform-origin: 50% 50%; }
+
+@keyframes breathe { 0%,100% { transform: scale(1,1); } 50% { transform: scale(1.006,1.014); } }
+@keyframes sway { 0%,100% { transform: rotate(0deg); } 50% { transform: rotate(1.2deg); } }
+@keyframes blink { 0%, 46%, 50%, 100% { transform: scaleY(1); } 48% { transform: scaleY(.08); } }
+@keyframes glint { 0%, 70% { transform: translateX(0); opacity: 0; } 75% { opacity: .9; } 88% { transform: translateX(70px); opacity: 0; } 100% { opacity: 0; } }
+@keyframes aura { 0%,100% { opacity: .55; transform: scale(1); } 50% { opacity: .85; transform: scale(1.04); } }
+@keyframes float { 0%,100% { transform: translateY(0) rotate(0deg); } 50% { transform: translateY(-10px) rotate(6deg); } }
+@keyframes eyes { 0%,100% { opacity: .75; } 50% { opacity: 1; } }
+@keyframes pin { 0%,100% { filter: brightness(1); } 50% { filter: brightness(1.35); } }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}
+</style>
+
+<div class="wrap">
+  <header>
+    <h1><span class="v">بنفش</span>، <span class="w">سفید</span> و <span class="g">گولم</span></h1>
+    <p class="lede">پیش‌نمایش اولیه‌ی سه کاراکتر پروژه، به شکل وکتور (SVG) و متحرک. اول ببین شبیه‌شون شدن یا نه، بعد سراغ انیمیشن اصلی میریم. دکمه‌ی «پخش صحنه» یه صحنه‌ی آزمایشی کوتاه با حال‌وهوای کریپتو نشون میده.</p>
+  </header>
+
+  <div class="stage" dir="ltr" aria-label="صحنه‌ی دو کاراکتر">
+    <svg viewBox="0 0 800 450" role="img" aria-labelledby="stage-title">
+      <title id="stage-title">کاراکتر سفید در سمت چپ با عینک آفتابی و کراوات، گولم سنگی با لوگوی پروژه روی سینه در وسط، کاراکتر بنفش در سمت راست با عینک و هاله‌ی بنفش</title>
+      <defs>
+        <linearGradient id="bg-white" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stop-color="#e6d6d6"/>
+          <stop offset="1" stop-color="#a88f97"/>
+        </linearGradient>
+        <radialGradient id="bg-violet" cx=".72" cy=".45" r=".7">
+          <stop offset="0" stop-color="#3a2252"/>
+          <stop offset=".55" stop-color="#1a1222"/>
+          <stop offset="1" stop-color="#0d0a12"/>
+        </radialGradient>
+        <radialGradient id="aura-g" cx=".5" cy=".5" r=".5">
+          <stop offset="0" stop-color="#b56cff" stop-opacity=".9"/>
+          <stop offset=".6" stop-color="#8a3dff" stop-opacity=".35"/>
+          <stop offset="1" stop-color="#8a3dff" stop-opacity="0"/>
+        </radialGradient>
+        <filter id="rim" x="-20%" y="-20%" width="140%" height="140%">
+          <feDropShadow dx="0" dy="0" stdDeviation="4" flood-color="#b26bff" flood-opacity=".9"/>
+        </filter>
+        <filter id="eye-glow" x="-200%" y="-200%" width="500%" height="500%">
+          <feGaussianBlur stdDeviation="2.5" result="b"/>
+          <feMerge><feMergeNode in="b"/><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+        </filter>
+        <filter id="soft" x="-20%" y="-20%" width="140%" height="140%">
+          <feDropShadow dx="0" dy="6" stdDeviation="8" flood-color="#3b2a30" flood-opacity=".35"/>
+        </filter>
+        <clipPath id="c2-lens-clip">
+          <rect x="116" y="144" width="31" height="16" rx="3"/>
+          <rect x="153" y="144" width="31" height="16" rx="3"/>
+        </clipPath>
+      </defs>
+
+      <!-- backgrounds: diagonal split -->
+      <rect width="800" height="450" fill="url(#bg-white)"/>
+      <path d="M430 0 L800 0 L800 450 L370 450 Z" fill="url(#bg-violet)"/>
+      <path d="M430 0 L370 450" stroke="#b26bff" stroke-width="2" opacity=".6"/>
+
+      <!-- white side decor: arcs -->
+      <g fill="none" stroke="#fff" stroke-opacity=".45" stroke-width="1.5">
+        <path d="M30 330 A90 90 0 0 1 120 240"/>
+        <path d="M45 330 A75 75 0 0 1 120 255"/>
+        <path d="M60 330 A60 60 0 0 1 120 270"/>
+      </g>
+
+      <!-- violet side decor -->
+      <g fill="none" stroke="#e9e1ff" stroke-width="2" stroke-opacity=".75">
+        <polygon class="float" points="705,70 725,62 740,82 722,96 704,88"/>
+        <polygon class="float f2" points="752,200 765,188 780,198 774,216 758,214"/>
+        <polygon class="float f3" points="740,300 752,288 766,300 754,316"/>
+      </g>
+      <g class="float f2">
+        <path d="M545 40 L590 25 L605 57 L568 77 L542 65 Z" fill="#d9a441" stroke="#7a5418" stroke-width="2"/>
+        <circle cx="564" cy="47" r="4.5" fill="#fff3c9" stroke="#7a5418"/>
+        <circle cx="586" cy="41" r="4.5" fill="#fff3c9" stroke="#7a5418"/>
+      </g>
+
+      <!-- ================= GOLEM (center, behind) ================= -->
+      <g id="golem" transform="translate(274 28) scale(1.05)" filter="url(#soft)">
+        <g id="g-body" stroke="#1a1414" stroke-width="1.5" stroke-linejoin="round">
+          <polygon points="72,222 112,228 98,328 52,326" fill="#4a3730"/>
+          <polygon points="72,222 90,224 80,290 60,288" fill="#5e463b"/>
+          <polygon points="18,326 100,320 106,360 14,364" fill="#4f3a31"/>
+          <polygon points="18,326 100,320 92,312 30,316" fill="#8a6e5e"/>
+          <polygon points="132,228 174,222 196,328 150,332" fill="#4a3730"/>
+          <polygon points="160,226 174,222 190,300 170,302" fill="#6e5244"/>
+          <polygon points="146,332 204,326 226,370 150,372" fill="#4f3a31"/>
+          <polygon points="146,332 204,326 196,316 152,320" fill="#c3a996"/>
+          <polygon points="92,212 150,212 146,246 96,246" fill="#2a2023"/>
+          <ellipse cx="120" cy="196" rx="48" ry="16" fill="#3e4a5c"/>
+          <polygon points="68,196 172,196 178,216 62,216" fill="#6e5244"/>
+          <polygon points="76,188 164,188 172,196 68,196" fill="#a3887a"/>
+          <polygon points="18,138 50,138 52,196 22,200" fill="#3e4a5c"/>
+          <polygon points="200,132 236,138 232,212 202,208" fill="#5e463b"/>
+          <polygon points="220,135 236,138 234,180 222,178" fill="#8a6e5e"/>
+          <polygon points="46,80 194,80 210,138 176,176 66,176 32,138" fill="#5a4236"/>
+          <polygon points="46,80 120,80 120,96 60,100" fill="#6e5244"/>
+          <polygon points="176,176 210,138 194,130 168,160" fill="#3d2c25"/>
+          <polygon points="86,96 156,96 160,146 82,146" fill="#1d191c"/>
+          <g id="g-logo" fill="none" stroke="#fff" stroke-linecap="round">
+            <path d="M108 107 Q128 121 108 135" stroke-width="4.5"/>
+            <path d="M134 107 Q114 121 134 135" stroke-width="4.5"/>
+            <path d="M102 104 Q121 97 140 104" stroke-width="2.2"/>
+            <path d="M102 138 Q121 145 140 138" stroke-width="2.2"/>
+          </g>
+          <polygon points="26,196 66,198 70,236 32,240" fill="#5a4a50"/>
+          <polygon points="14,86 52,80 58,138 18,142" fill="#3e4a5c"/>
+          <polygon points="14,86 52,80 46,72 20,78" fill="#55637a"/>
+          <polygon points="186,72 228,82 234,132 196,140" fill="#c3a996"/>
+          <polygon points="186,72 228,82 220,70 194,64" fill="#e0cbb9"/>
+          <polygon points="210,100 234,132 196,140" fill="#8a6e5e"/>
+          <polygon points="172,212 214,206 222,244 178,250" fill="#6a5650"/>
+          <polygon points="172,212 214,206 208,198 176,204" fill="#a3887a"/>
+          <polygon points="98,48 112,30 132,30 144,48 144,76 98,76" fill="#5e463b"/>
+          <polygon points="112,30 132,30 144,48 124,46" fill="#8a6e5e"/>
+          <polygon points="98,48 112,30 112,60 98,76" fill="#4a3730"/>
+          <g id="g-eyes" filter="url(#eye-glow)" stroke="none">
+            <circle cx="111" cy="58" r="3.2" fill="#fff"/>
+            <circle cx="131" cy="58" r="3.2" fill="#fff"/>
+          </g>
+        </g>
+      </g>
+
+      <!-- ================= WHITE (left) ================= -->
+      <g transform="translate(0 72) scale(1.05)" filter="url(#soft)">
+        <g id="c2-body">
+          <!-- torso: white shirt / jacket -->
+          <path d="M28 360 Q36 272 128 250 L172 250 Q264 272 272 360 Z" fill="#f5f1ec" stroke="#4a2c33" stroke-width="2.5"/>
+          <path d="M60 360 Q66 300 110 280" fill="none" stroke="#d9cfc9" stroke-width="3"/>
+          <!-- neck -->
+          <path d="M134 205 L134 252 Q150 262 166 252 L166 205 Z" fill="#e2b493"/>
+          <path d="M134 225 Q150 238 166 225 L166 212 L134 212 Z" fill="#c9987a" opacity=".6"/>
+          <!-- high collar -->
+          <path d="M126 246 L112 282 L146 266 Z" fill="#fff" stroke="#4a2c33" stroke-width="2"/>
+          <path d="M174 246 L188 282 L154 266 Z" fill="#fff" stroke="#4a2c33" stroke-width="2"/>
+          <circle cx="118" cy="262" r="4" fill="none" stroke="#9b8a86" stroke-width="1.5"/>
+          <!-- tie -->
+          <path d="M144 258 L156 258 L153 270 L147 270 Z" fill="#1a1a1f"/>
+          <path d="M147 270 L153 270 L159 336 L150 350 L141 336 Z" fill="#1d1d23"/>
+          <path d="M150 272 L156 336" stroke="#3a3a44" stroke-width="1.5"/>
+          <!-- pink crystal pin -->
+          <g id="c2-pin">
+            <path d="M205 296 L214 290 L222 298 L218 314 L208 314 Z" fill="#e6a6c8" stroke="#8a4f6c" stroke-width="1.5"/>
+            <path d="M214 290 L212 314" stroke="#fff" stroke-opacity=".6" stroke-width="1"/>
+          </g>
+
+          <g id="c2-head" class="part">
+            <!-- ears -->
+            <ellipse cx="109" cy="156" rx="7" ry="13" fill="#e2b493"/>
+            <ellipse cx="191" cy="156" rx="7" ry="13" fill="#e2b493"/>
+            <!-- face -->
+            <path d="M110 125 Q107 190 130 214 Q150 232 170 214 Q193 190 190 125 Q188 80 150 78 Q112 80 110 125 Z" fill="#efc6a6"/>
+            <path d="M170 214 Q193 190 190 125 L178 130 Q182 188 160 222 Z" fill="#d9a888" opacity=".55"/>
+            <!-- eyes (visible only when glasses lift) -->
+            <g id="c2-eyes">
+              <ellipse cx="131" cy="153" rx="8" ry="4.2" fill="#fff"/>
+              <circle cx="131" cy="153" r="3.6" fill="#4a3426"/>
+              <ellipse cx="169" cy="153" rx="8" ry="4.2" fill="#fff"/>
+              <circle cx="169" cy="153" r="3.6" fill="#4a3426"/>
+              <path d="M122 150 Q131 146 140 150 M160 150 Q169 146 178 150" stroke="#2a1b16" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+            </g>
+            <!-- brows: straight, thick -->
+            <path d="M118 136 Q131 131 145 135" stroke="#3b2418" stroke-width="4.5" fill="none" stroke-linecap="round"/>
+            <path d="M155 135 Q169 131 182 136" stroke="#3b2418" stroke-width="4.5" fill="none" stroke-linecap="round"/>
+            <!-- nose -->
+            <path d="M151 158 Q147 178 153 182" stroke="#b78567" stroke-width="2" fill="none" stroke-linecap="round"/>
+            <!-- mouth -->
+            <path id="m2" d="M141 198 Q150 199 159 198" stroke="#9a5a4f" stroke-width="2.6" fill="none" stroke-linecap="round"/>
+            <path d="M144 204 Q150 206 156 204" stroke="#c98f7a" stroke-width="1.6" fill="none" stroke-linecap="round"/>
+            <!-- hair: neat, side swept -->
+            <path d="M104 142 Q96 80 148 64 Q204 66 198 140 L192 120 Q186 98 164 96 Q140 94 124 100 Q112 112 110 146 Z" fill="#3b2418"/>
+            <path d="M118 92 Q150 72 190 96" stroke="#5a3a2a" stroke-width="3" fill="none" opacity=".7"/>
+            <path d="M138 96 Q126 114 134 132 Q134 114 148 100 Z" fill="#3b2418"/>
+            <!-- sunglasses -->
+            <g id="c2-glasses" class="part">
+              <rect x="116" y="144" width="31" height="16" rx="3" fill="#141418" stroke="#08080a" stroke-width="2"/>
+              <rect x="153" y="144" width="31" height="16" rx="3" fill="#141418" stroke="#08080a" stroke-width="2"/>
+              <path d="M147 150 L153 150" stroke="#08080a" stroke-width="2.5"/>
+              <path d="M116 149 L106 147 M184 149 L194 147" stroke="#08080a" stroke-width="2"/>
+              <g clip-path="url(#c2-lens-clip)">
+                <rect id="c2-glint" x="96" y="140" width="10" height="24" fill="#fff" transform="skewX(-20)" opacity="0"/>
+              </g>
+            </g>
+          </g>
+        </g>
+      </g>
+
+      <!-- ================= VIOLET (right) ================= -->
+      <ellipse id="aura" cx="643" cy="250" rx="160" ry="190" fill="url(#aura-g)"/>
+      <g transform="translate(485 72) scale(1.05)">
+        <g id="c1-body" filter="url(#rim)">
+          <!-- torso: black shirt -->
+          <path d="M28 360 Q36 272 128 250 L172 250 Q264 272 272 360 Z" fill="#17131d" stroke="#c38bff" stroke-width="1.5"/>
+          <!-- neck -->
+          <path d="M134 205 L134 252 Q150 262 166 252 L166 205 Z" fill="#d6ab95"/>
+          <path d="M134 222 Q150 236 166 222 L166 210 L134 210 Z" fill="#8f6488" opacity=".55"/>
+          <!-- collar -->
+          <path d="M128 246 L114 286 L147 262 Z" fill="#221b2b" stroke="#c38bff" stroke-width="1.5"/>
+          <path d="M172 246 L186 286 L153 262 Z" fill="#221b2b" stroke="#c38bff" stroke-width="1.5"/>
+          <circle cx="150" cy="300" r="3" fill="#3a2f4a"/>
+          <circle cx="150" cy="330" r="3" fill="#3a2f4a"/>
+
+          <g id="c1-head" class="part">
+            <!-- hair back mass -->
+            <path d="M98 155 Q86 70 150 50 Q216 60 206 155 Z" fill="#2c1d18"/>
+            <!-- ears -->
+            <ellipse cx="109" cy="157" rx="7" ry="13" fill="#d9ad98"/>
+            <ellipse cx="191" cy="157" rx="7" ry="13" fill="#c897a6"/>
+            <!-- face -->
+            <path d="M110 125 Q107 190 130 214 Q150 232 170 214 Q193 190 190 125 Q188 80 150 78 Q112 80 110 125 Z" fill="#e8bfa9"/>
+            <!-- purple light on right cheek -->
+            <path d="M170 214 Q193 190 190 125 L180 128 Q184 186 160 222 Z" fill="#b07ad0" opacity=".45"/>
+            <ellipse cx="128" cy="176" rx="9" ry="4" fill="#e58b8b" opacity=".35"/>
+            <ellipse cx="172" cy="176" rx="9" ry="4" fill="#e58b8b" opacity=".35"/>
+            <!-- eyes: half-lidded -->
+            <g id="c1-eyes">
+              <g id="c1-pupils">
+                <ellipse cx="131" cy="155" rx="8" ry="4" fill="#fbeff0"/>
+                <circle cx="131" cy="155" r="3.6" fill="#7e2f33"/>
+                <ellipse cx="169" cy="155" rx="8" ry="4" fill="#fbeff0"/>
+                <circle cx="169" cy="155" r="3.6" fill="#7e2f33"/>
+              </g>
+              <path d="M121 153 Q131 146 142 153 L142 150 Q131 142 121 150 Z" fill="#e8bfa9"/>
+              <path d="M158 153 Q169 146 179 153 L179 150 Q169 142 158 150 Z" fill="#e8bfa9"/>
+              <path d="M121 153 Q131 148 142 153 M158 153 Q169 148 179 153" stroke="#22141a" stroke-width="2.6" fill="none" stroke-linecap="round"/>
+            </g>
+            <!-- brows: angled down = grumpy -->
+            <path id="c1-brow-l" d="M119 134 Q132 134 144 140" stroke="#2c1d18" stroke-width="4" fill="none" stroke-linecap="round"/>
+            <path id="c1-brow-r" d="M156 140 Q168 134 181 134" stroke="#2c1d18" stroke-width="4" fill="none" stroke-linecap="round"/>
+            <!-- nose -->
+            <path d="M151 160 Q147 178 153 182" stroke="#ad7d6e" stroke-width="2" fill="none" stroke-linecap="round"/>
+            <!-- mouth: pout -->
+            <path id="m1" d="M142 198 Q150 195 158 198" stroke="#8e4a52" stroke-width="2.6" fill="none" stroke-linecap="round"/>
+            <path d="M145 203 Q150 205 155 203" stroke="#c98a86" stroke-width="1.6" fill="none" stroke-linecap="round"/>
+            <!-- glasses: thick frames, tinted lenses -->
+            <g>
+              <rect x="115" y="141" width="32" height="24" rx="5" fill="#6b5a86" fill-opacity=".33" stroke="#1e1a22" stroke-width="4.5"/>
+              <rect x="153" y="141" width="32" height="24" rx="5" fill="#6b5a86" fill-opacity=".33" stroke="#1e1a22" stroke-width="4.5"/>
+              <path d="M147 150 Q150 147 153 150" stroke="#1e1a22" stroke-width="3.5" fill="none"/>
+              <path d="M115 148 L105 146 M185 148 L195 146" stroke="#1e1a22" stroke-width="3.5"/>
+              <path d="M120 145 L128 145" stroke="#fff" stroke-opacity=".5" stroke-width="2" stroke-linecap="round"/>
+              <path d="M158 145 L166 145" stroke="#fff" stroke-opacity=".5" stroke-width="2" stroke-linecap="round"/>
+            </g>
+            <!-- hair: messy front fringe -->
+            <path d="M102 138 Q94 82 128 62 Q152 48 182 58 Q212 74 204 136 L197 114 L190 132 L184 104 L174 126 L167 98 L156 122 L146 96 L136 126 L128 100 L118 130 L112 108 Z" fill="#33221c"/>
+            <g id="c1-hair-tips" fill="#33221c">
+              <path d="M128 60 Q118 40 104 44 Q120 50 118 66 Z"/>
+              <path d="M160 52 Q166 30 186 30 Q170 40 174 58 Z"/>
+              <path d="M190 64 Q208 50 220 60 Q204 62 200 80 Z"/>
+            </g>
+            <path d="M134 72 Q160 60 186 78" stroke="#5b3d33" stroke-width="3" fill="none" opacity=".8"/>
+            <path d="M184 104 L174 126 L167 98" stroke="#b26bff" stroke-width="1.5" fill="none" opacity=".7"/>
+          </g>
+        </g>
+      </g>
+    </svg>
+
+    <div class="bubble b-white" id="bw" dir="rtl"></div>
+    <div class="bubble b-violet" id="bv" dir="rtl"></div>
+    <div class="bubble b-golem" id="bg" dir="rtl"></div>
+  </div>
+
+  <div class="controls">
+    <button id="play" type="button">▶ پخش صحنه</button>
+    <button id="reset" type="button" class="ghost">از اول</button>
+    <span class="status" id="status">صحنه‌ی آزمایشی: «شب ریزش» · حدود ۱۲ ثانیه</span>
+  </div>
+
+  <section class="refs" aria-label="تصاویر مرجع">
+    <div class="ref">
+      <img src="assets/characters/character-violet.jpg" alt="تصویر مرجع کاراکتر بنفش" onerror="this.hidden=true">
+      <div><b>کاراکتر بنفش</b><span>موی شلوغ قهوه‌ای، عینک قاب‌مشکی با شیشه‌ی دودی، پیراهن مشکی، هاله‌ی بنفش، اخم و حالت بی‌حوصله</span></div>
+    </div>
+    <div class="ref">
+      <img src="assets/characters/character-white.jpg" alt="تصویر مرجع کاراکتر سفید" onerror="this.hidden=true">
+      <div><b>کاراکتر سفید</b><span>موی مرتب با یک طره روی پیشونی، عینک آفتابی باریک، پیراهن سفید یقه‌بلند، کراوات مشکی، سنجاق کریستال صورتی، خونسرد</span></div>
+    </div>
+    <div class="ref">
+      <img src="assets/characters/character-golem.jpg" alt="تصویر مرجع گولم سنگی" onerror="this.hidden=true">
+      <div><b>گولم سنگی</b><span>غول سنگی چندوجهی قهوه‌ای و آبی‌خاکستری، چشم‌های سفید درخشان، لوگوی پروژه روی سینه، ایستاده با دست به کمر</span></div>
+    </div>
+  </section>
+
+  <section style="display:grid;gap:14px">
+    <h2>ایده‌ی انیمیشن برای پروژه‌ی کریپتو</h2>
+    <p class="lede">نقش پیشنهادی: <b>بنفش</b> تریدر شب‌بیدار و پرهیجانه، <b>سفید</b> سرمایه‌گذار خونسرد و بلندمدته، و <b>گولم</b> نماد خود پروژه‌ست: محکم، امن و نگهبان دارایی‌ها.</p>
+    <div class="ideas">
+      <article class="idea">
+        <span class="tag">اینترو و لوگو · ۵ تا ۱۰ ثانیه</span>
+        <h3>بیدار شدن نگهبان</h3>
+        <p>زمین می‌لرزه، گولم از دل سنگ‌ها بلند میشه و لوگوی روی سینه‌اش روشن میشه. بنفش و سفید از دو طرف وارد میشن و اسم پروژه ظاهر میشه. برای شروع ویدیوها و پست‌ها مناسبه.</p>
+      </article>
+      <article class="idea">
+        <span class="tag">طنز و پیام اصلی · ۲۰ تا ۳۰ ثانیه</span>
+        <h3>شب ریزش بازار</h3>
+        <p>یه کندل قرمز بزرگ از آسمون پایین میاد. بنفش وحشت می‌کنه، سفید آروم چایش رو می‌خوره. گولم کندل رو با یه دست می‌گیره و برش می‌گردونه بالا تا سبز بشه.</p>
+      </article>
+      <article class="idea">
+        <span class="tag">امنیت · ۳۰ تا ۴۵ ثانیه</span>
+        <h3>حمله به کیف پول</h3>
+        <p>سایه‌های هکر به کیف پول بنفش حمله می‌کنن. گولم جلوشون می‌ایسته، لوگوش سپر می‌سازه و حمله‌ها بهش می‌خورن و خرد میشن. برای معرفی ویژگی‌های امنیتی پروژه.</p>
+      </article>
+      <article class="idea">
+        <span class="tag">سری آموزشی · هر قسمت ۳۰ ثانیه</span>
+        <h3>کریپتو به زبان ساده</h3>
+        <p>بنفش سؤال می‌پرسه، سفید توضیح میده و گولم با سنگ‌هاش نمایش میده. مثلاً برای استیکینگ، گولم سنگ‌ها رو روی هم می‌چینه و از بینشون کریستال درمیاد.</p>
+      </article>
+      <article class="idea">
+        <span class="tag">اعلان و رویداد · ۱۵ ثانیه</span>
+        <h3>بارون کریستال</h3>
+        <p>برای ایردراپ، لانچ یا لیست شدن توکن: آسمون بنفش میشه و کریستال‌ها می‌بارن. سه کاراکتر جمعشون می‌کنن و آخرش تاریخ و جزئیات رویداد نشون داده میشه.</p>
+      </article>
+      <article class="idea">
+        <span class="tag">کامیونیتی · ۱۰ ثانیه، قابل تکرار</span>
+        <h3>استیکرهای متحرک</h3>
+        <p>چند لوپ کوتاه برای تلگرام و توییتر: گولم با دست به کمر سر تکون میده، سفید عینکش رو پایین میاره، بنفش اخم می‌کنه و هاله‌اش برق می‌زنه.</p>
+      </article>
+    </div>
+  </section>
+</div>
+
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  const bw = $('bw'), bv = $('bv'), bg = $('bg');
+  const playBtn = $('play'), resetBtn = $('reset'), status = $('status');
+  const m1 = $('m1'), m2 = $('m2');
+  const M1_DEFAULT = m1.getAttribute('d'), M2_DEFAULT = m2.getAttribute('d');
+  const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let run = 0;
+  const live = [];
+
+  const sleep = (ms, id) => new Promise((res, rej) => setTimeout(() => (id === run ? res() : rej('stop')), ms));
+  const anim = (el, frames, ms) => {
+    const a = el.animate(frames, { duration: reduce ? 1 : ms, easing: 'ease-in-out', fill: 'forwards' });
+    live.push(a);
+    return a;
+  };
+  const say = (b, text) => { b.textContent = text; b.classList.add('show'); };
+  const hush = (...bs) => bs.forEach((b) => b.classList.remove('show'));
+
+  function reset() {
+    run++;
+    live.splice(0).forEach((a) => a.cancel());
+    hush(bw, bv, bg);
+    m1.setAttribute('d', M1_DEFAULT);
+    m2.setAttribute('d', M2_DEFAULT);
+    playBtn.disabled = false;
+    status.textContent = 'صحنه‌ی آزمایشی: «شب ریزش» · حدود ۱۲ ثانیه';
+  }
+
+  async function play() {
+    reset();
+    const id = run;
+    playBtn.disabled = true;
+    status.textContent = 'در حال پخش…';
+    try {
+      await sleep(500, id);
+      // violet glances at white, panicked by the market
+      anim($('c1-pupils'), [{ transform: 'translateX(0)' }, { transform: 'translateX(-3px)' }], 350);
+      anim($('c1-head'), [{ transform: 'rotate(0deg)' }, { transform: 'rotate(-3deg)' }], 600);
+      anim($('aura'), [{ opacity: .7 }, { opacity: 1 }, { opacity: .5 }, { opacity: 1 }], 900);
+      await sleep(400, id);
+      say(bv, 'بازار باز ریخت…');
+      await sleep(1700, id);
+
+      // white lifts sunglasses, unbothered
+      anim($('c2-head'), [{ transform: 'rotate(0deg)' }, { transform: 'rotate(3deg)' }], 600);
+      anim($('c2-glasses'), [{ transform: 'translateY(0)' }, { transform: 'translateY(-22px)' }], 700);
+      m2.setAttribute('d', 'M141 197 Q151 201 160 195');
+      say(bw, 'من که هنوز نگه داشتم.');
+      await sleep(2000, id);
+
+      // golem wakes: eyes flare, logo glows, stage shakes
+      hush(bv, bw);
+      anim($('g-eyes'), [{ opacity: .6, transform: 'scale(1)' }, { opacity: 1 }], 400);
+      anim($('g-logo'), [{ transform: 'scale(1)', filter: 'none' }, { transform: 'scale(1.15)', filter: 'drop-shadow(0 0 6px #fff)' }, { transform: 'scale(1.08)', filter: 'drop-shadow(0 0 4px #fff)' }], 900);
+      anim(document.querySelector('.stage svg'), [{ transform: 'translate(0,0)' }, { transform: 'translate(-4px,2px)' }, { transform: 'translate(4px,-2px)' }, { transform: 'translate(-3px,1px)' }, { transform: 'translate(0,0)' }], 500);
+      anim($('c1-brow-l'), [{ transform: 'translateY(0)' }, { transform: 'translateY(-3px)' }], 300);
+      anim($('c1-brow-r'), [{ transform: 'translateY(0)' }, { transform: 'translateY(-3px)' }], 300);
+      await sleep(600, id);
+      say(bg, 'تا وقتی من اینجام، نگران نباش.');
+      await sleep(2300, id);
+
+      // white drops glasses and smiles; violet calms down and smirks
+      hush(bg);
+      anim($('c2-glasses'), [{ transform: 'translateY(-22px)' }, { transform: 'translateY(0)' }], 500);
+      anim($('c2-head'), [{ transform: 'rotate(3deg)' }, { transform: 'rotate(0deg)' }], 600);
+      m2.setAttribute('d', 'M140 196 Q151 203 161 195');
+      anim($('c1-head'), [{ transform: 'rotate(-3deg)' }, { transform: 'rotate(0deg)' }], 700);
+      anim($('c1-pupils'), [{ transform: 'translateX(-3px)' }, { transform: 'translateX(0)' }], 500);
+      m1.setAttribute('d', 'M142 199 Q152 200 159 194');
+      await sleep(500, id);
+      say(bv, 'باشه… منم نگه می‌دارم.');
+      await sleep(1800, id);
+      hush(bv);
+      await sleep(400, id);
+
+      playBtn.disabled = false;
+      status.textContent = 'تموم شد. دوباره پخش کن یا «از اول» رو بزن.';
+    } catch (e) { /* stopped by reset */ }
+  }
+
+  playBtn.addEventListener('click', play);
+  resetBtn.addEventListener('click', reset);
+})();
+</script>
