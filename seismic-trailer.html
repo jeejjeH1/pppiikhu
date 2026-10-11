@@ -48,7 +48,7 @@ h1 span { color: var(--violet); }
 
 .caption {
   position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); z-index: 2;
-  width: 86%; text-align: center; font-family: var(--display); font-size: clamp(1.1rem, 3.6vw, 2.4rem);
+  width: 86%; text-align: center; font-family: var(--latin); font-weight: 600; letter-spacing: .04em; font-size: clamp(.9rem, 2.8vw, 1.9rem);
   color: #f3ecff; text-shadow: 0 0 22px rgba(162, 89, 255, .9), 0 2px 0 #000;
   opacity: 0; transition: opacity .4s ease; pointer-events: none;
 }
@@ -105,28 +105,30 @@ body.capture * { transition: none !important; }
 <div class="wrap">
   <header>
     <h1><span>SEISMIC</span>: ENCRYPTED</h1>
-    <p class="lede">تریلر سینمایی با سه کاراکتر پروژه. بنفش با داده‌ی معامله توی یه شهر نئونی زیر بارون فرار می‌کنه، پهپادهای MEV دنبالشن، سفید از روی پشت‌بوم کریستال Seismic رو براش پرت می‌کنه، و گولم از دل زمین بیرون میاد. حدود ۴۸ ثانیه.</p>
+    <p class="lede">تریلر سینمایی با سه کاراکتر پروژه، با دیالوگ انگلیسی و صدا (موسیقی، بارون و افکت‌ها). بنفش با داده‌ی معامله توی یه شهر نئونی زیر بارون فرار می‌کنه، پهپادهای MEV دنبالشن، سفید از روی پشت‌بوم کریستال Seismic رو براش پرت می‌کنه، و گولم از دل زمین بیرون میاد. حدود ۴۸ ثانیه.</p>
   </header>
 
   <div class="stage bars" id="stage" dir="ltr">
     <canvas id="c" aria-label="تریلر سه‌بعدی Seismic"></canvas>
     <div class="flash" id="flash"></div>
-    <div class="caption" id="cap" dir="rtl"></div>
-    <div class="bubble v" id="b-v" dir="rtl"></div>
-    <div class="bubble w" id="b-w" dir="rtl"></div>
-    <div class="bubble g" id="b-g" dir="rtl"></div>
+    <div class="caption" id="cap"></div>
+    <div class="bubble v" id="b-v"></div>
+    <div class="bubble w" id="b-w"></div>
+    <div class="bubble g" id="b-g"></div>
     <div class="endcard" id="end">
       <div class="brand">SEISMIC</div>
       <div class="tag">the encrypted blockchain</div>
-      <div class="fa" dir="rtl">بلاکچین رمزنگاری‌شده</div>
+      
     </div>
     <button class="bigplay" id="bigplay" type="button" aria-label="پخش تریلر">▶</button>
     <div class="fallback" id="fallback" hidden>نمایش سه‌بعدی روی این دستگاه بارگذاری نشد. صفحه رو دوباره باز کن یا از یه مرورگر دیگه امتحان کن.</div>
   </div>
 
+  <audio id="snd" src="audio/seismic-trailer.mp3" preload="auto"></audio>
   <div class="transport">
     <button id="play" type="button">▶ پخش</button>
     <button id="restart" type="button" class="ghost">از اول</button>
+    <button id="mute" type="button" class="ghost" aria-pressed="false">🔊 صدا</button>
     <input id="scrub" type="range" min="0" max="48" step="0.01" value="0" aria-label="زمان تریلر">
     <span class="time" id="time">0.0 / 48.0s</span>
   </div>
@@ -1053,16 +1055,16 @@ body.capture * { transition: none !important; }
 
   // ================= overlays =================
   const lines = [
-    { who: 'v', name: 'بنفش', a: 8.6, b: 10.9, text: 'ولم نمی‌کنن… همه‌چی رو می‌بینن.' },
-    { who: 'w', name: 'سفید', a: 11.5, b: 13.3, text: 'بگیرش.' },
-    { who: 'v', name: 'بنفش', a: 20.0, b: 22.0, text: 'نوبت توئه، رفیق.' },
-    { who: 'g', name: 'گولم', a: 33.7, b: 36.0, text: 'از این به بعد، هیچ‌کس چیزی نمی‌بینه.' },
-    { who: 'w', name: 'سفید', a: 38.9, b: 40.9, text: 'رمزنگاری‌شده. همون‌طور که باید باشه.' },
-    { who: 'v', name: 'بنفش', a: 41.0, b: 42.6, text: '…باحال بود.' },
+    { who: 'v', name: 'VIOLET', a: 8.6, b: 10.9, text: "They won't stop… they can see everything." },
+    { who: 'w', name: 'WHITE', a: 11.5, b: 13.3, text: 'Catch.' },
+    { who: 'v', name: 'VIOLET', a: 20.0, b: 22.0, text: 'Your turn, big guy.' },
+    { who: 'g', name: 'GOLEM', a: 33.7, b: 36.0, text: 'From now on… nobody sees a thing.' },
+    { who: 'w', name: 'WHITE', a: 38.9, b: 40.9, text: 'Encrypted. The way it should be.' },
+    { who: 'v', name: 'VIOLET', a: 41.0, b: 42.6, text: '…okay, that was cool.' },
   ];
   const captions = [
-    { a: 0.6, b: 4.2, text: 'شهری که هیچ رازی توش نمی‌مونه…' },
-    { a: 31.4, b: 33.3, text: 'و بعد… همه‌چیز رمزنگاری شد.' },
+    { a: 0.6, b: 4.2, text: 'In a city where nothing stays secret…' },
+    { a: 31.4, b: 33.3, text: '…everything went dark. And encrypted.' },
   ];
   const bubbles = { v: document.getElementById('b-v'), w: document.getElementById('b-w'), g: document.getElementById('b-g') };
   const anchors = { v: V.face, w: W.face, g: G.head };
@@ -1092,13 +1094,16 @@ body.capture * { transition: none !important; }
   const playBtn = document.getElementById('play'), restartBtn = document.getElementById('restart');
   const scrub = document.getElementById('scrub'), timeEl = document.getElementById('time'), bigplay = document.getElementById('bigplay');
   let mode = 'intro', t = 0, clock = 0;
+  const snd = document.getElementById('snd'), muteBtn = document.getElementById('mute');
+  const sndSync = () => { try { snd.currentTime = t; } catch (e) {} };
+  muteBtn.addEventListener('click', () => { snd.muted = !snd.muted; muteBtn.textContent = snd.muted ? '🔇 بی‌صدا' : '🔊 صدا'; muteBtn.setAttribute('aria-pressed', String(snd.muted)); });
   const POSTER = 43.4;
-  function setMode(m) { mode = m; playBtn.textContent = m === 'play' ? '❚❚ توقف' : '▶ پخش'; bigplay.hidden = m !== 'intro' || CAPTURE; }
+  function setMode(m) { mode = m; if (m === 'play') { sndSync(); const pr = snd.play(); if (pr) pr.catch(() => {}); } else snd.pause(); playBtn.textContent = m === 'play' ? '❚❚ توقف' : '▶ پخش'; bigplay.hidden = m !== 'intro' || CAPTURE; }
   setMode('intro');
   function playPause() { if (mode === 'play') setMode('paused'); else { if (mode === 'intro' || t >= END) t = 0; setMode('play'); } }
   playBtn.addEventListener('click', playPause); bigplay.addEventListener('click', playPause);
   restartBtn.addEventListener('click', () => { t = 0; setMode('play'); });
-  scrub.addEventListener('input', () => { t = parseFloat(scrub.value); setMode('paused'); });
+  scrub.addEventListener('input', () => { t = parseFloat(scrub.value); setMode('paused'); sndSync(); });
   document.querySelectorAll('.act button').forEach((b) => b.addEventListener('click', () => { t = parseFloat(b.dataset.t); setMode('play'); stage.scrollIntoView({ behavior: 'smooth', block: 'center' }); }));
 
   function resize() {
@@ -1120,7 +1125,10 @@ body.capture * { transition: none !important; }
     const dt = Math.min(0.05, (now - prev) / 1000); prev = now;
     if (!CAPTURE) {
       clock += dt;
-      if (mode === 'play') { t += dt; if (t >= END) { t = END; setMode('paused'); } }
+      if (mode === 'play') {
+        if (!snd.paused && snd.readyState >= 2 && Math.abs(snd.currentTime - t) < 0.5) t = snd.currentTime; else t += dt;
+        if (t >= END) { t = END; setMode('paused'); }
+      }
       const st = mode === 'intro' ? POSTER + Math.sin(clock * 0.3) * 0.4 : t;
       draw(st, mode !== 'intro');
       if (mode !== 'intro') scrub.value = t;
