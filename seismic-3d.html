@@ -1,0 +1,705 @@
+<title>نگهبان Seismic</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lalezar&family=Unbounded:wght@600;800&family=Vazirmatn:wght@400;600;800&family=JetBrains+Mono:wght@500&display=swap">
+<style>
+/* Layout: a 16:9 3D stage is the page; a transport bar under it; then the shot list as a real timeline. Single deliberate dark look (night scene). */
+:root {
+  --ink: #0c0a11;
+  --ink-2: #16121e;
+  --line: #2e2639;
+  --text: #ece6f3;
+  --muted: #a297b3;
+  --violet: #a259ff;
+  --rock: #c3a996;
+  --cyan: #7dfcff;
+  --display: "Lalezar", "Vazirmatn", Tahoma, sans-serif;
+  --latin: "Unbounded", "Vazirmatn", system-ui, sans-serif;
+  --body: "Vazirmatn", Tahoma, "Segoe UI", sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, Menlo, monospace;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { background: var(--ink); color: var(--text); font-family: var(--body); font-size: 16px; line-height: 1.8; margin: 0; }
+.wrap { max-width: 1120px; margin: 0 auto; padding-inline: 16px; padding-block: 24px 56px; display: grid; gap: 22px; }
+header { display: grid; gap: 2px; }
+h1 { font-family: var(--display); font-weight: 400; font-size: clamp(1.9rem, 5.5vw, 3rem); line-height: 1.25; margin: 0; text-wrap: balance; }
+h1 .latin { font-family: var(--latin); font-weight: 800; letter-spacing: .04em; color: var(--violet); font-size: .8em; }
+.lede { color: var(--muted); margin: 0; max-width: 64ch; }
+
+.stage { position: relative; aspect-ratio: 16 / 9; max-width: 100%; border-radius: 14px; overflow: hidden; border: 1px solid var(--line); background: var(--ink); }
+.stage canvas { display: block; width: 100%; height: 100%; }
+.fallback { position: absolute; inset: 0; display: grid; place-items: center; text-align: center; padding: 24px; color: var(--muted); }
+
+.bubble {
+  position: absolute; left: 0; top: 0;
+  max-width: min(42%, 340px);
+  padding: 7px 14px; border-radius: 14px;
+  font-weight: 600; font-size: clamp(.72rem, 1.9vw, 1.02rem); line-height: 1.55;
+  transform: translate(-50%, -100%);
+  pointer-events: none; white-space: normal;
+  opacity: 0; transition: opacity .2s ease;
+}
+.bubble.show { opacity: 1; }
+.bubble .who { display: block; font-size: .72em; font-weight: 800; opacity: .75; }
+.bubble.v { background: #22182f; color: #f1e6ff; border: 1.5px solid var(--violet); box-shadow: 0 0 18px rgba(162, 89, 255, .5); }
+.bubble.w { background: #fbf7f4; color: #2a1f22; border: 1.5px solid #bfa3a8; }
+.bubble.g { background: #2b2320; color: #f3e9e1; border: 1.5px solid var(--rock); box-shadow: 0 0 16px rgba(255, 255, 255, .2); }
+
+.endcard {
+  position: absolute; inset: 0; display: grid; place-content: center; text-align: center; gap: 4px;
+  background: radial-gradient(ellipse at center, rgba(12, 10, 17, .55), rgba(12, 10, 17, .1) 70%);
+  opacity: 0; transition: opacity .8s ease; pointer-events: none;
+}
+.endcard.show { opacity: 1; }
+.endcard .brand { font-family: var(--latin); font-weight: 800; font-size: clamp(1.8rem, 7vw, 4.2rem); letter-spacing: .18em; color: #fff; text-shadow: 0 0 24px rgba(162, 89, 255, .9); line-height: 1.1; }
+.endcard .tag { font-family: var(--latin); font-weight: 600; font-size: clamp(.6rem, 1.6vw, .95rem); letter-spacing: .3em; color: var(--rock); text-transform: uppercase; }
+.endcard .fa { font-size: clamp(.75rem, 2vw, 1.1rem); color: var(--text); }
+
+.bigplay {
+  position: absolute; inset: 0; margin: auto; width: 84px; height: 84px; border-radius: 50%;
+  border: 2px solid var(--violet); background: rgba(22, 18, 30, .75); color: #fff; font-size: 1.8rem;
+  display: grid; place-items: center; cursor: pointer; box-shadow: 0 0 30px rgba(162, 89, 255, .5);
+}
+.bigplay:focus-visible, button:focus-visible, input:focus-visible { outline: 3px solid var(--cyan); outline-offset: 3px; }
+
+.transport { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+.transport button {
+  font-family: var(--body); font-size: .98rem; font-weight: 600; padding: 8px 18px; border-radius: 999px;
+  border: 1.5px solid var(--violet); background: var(--violet); color: #fff; cursor: pointer; min-width: 92px;
+}
+.transport button.ghost { background: transparent; color: var(--text); border-color: var(--line); }
+.transport input[type=range] { flex: 1 1 220px; min-width: 0; accent-color: var(--violet); }
+.time { font-family: var(--mono); font-size: .85rem; color: var(--muted); font-variant-numeric: tabular-nums; direction: ltr; }
+
+h2 { font-family: var(--display); font-weight: 400; font-size: 1.6rem; margin: 0; }
+.shots { list-style: none; margin: 0; padding: 0; display: grid; gap: 0; }
+.shots li { display: grid; grid-template-columns: 92px minmax(0, 1fr); gap: 14px; padding-block: 10px; border-top: 1px solid var(--line); }
+.shots li button { all: unset; cursor: pointer; font-family: var(--mono); font-size: .85rem; color: var(--cyan); direction: ltr; text-align: right; font-variant-numeric: tabular-nums; }
+.shots li button:focus-visible { outline: 2px solid var(--cyan); }
+.shots b { display: block; }
+.shots span { color: var(--muted); }
+.notes { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
+.notes > div { min-width: 0; }
+.notes p, .notes ul { margin: 0; color: var(--muted); }
+.notes ul { padding-inline-start: 20px; }
+@media (max-width: 700px) { .notes { grid-template-columns: 1fr; } .shots li { grid-template-columns: 70px minmax(0, 1fr); } }
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>نگهبان <span class="latin">SEISMIC</span></h1>
+    <p class="lede">انیمیشن سه‌بعدی با سه کاراکتر پروژه. بنفش می‌خواد یه معامله بفرسته، ربات‌ها می‌خوان بخوننش، و گولم با یه ضربه‌ی لرزه‌ای معامله رو رمزنگاری می‌کنه تا سالم به سفید برسه. حدود ۲۳ ثانیه.</p>
+  </header>
+
+  <div class="stage" id="stage" dir="ltr">
+    <canvas id="c" aria-label="انیمیشن سه‌بعدی نگهبان Seismic"></canvas>
+    <div class="bubble v" id="b-v" dir="rtl"></div>
+    <div class="bubble w" id="b-w" dir="rtl"></div>
+    <div class="bubble g" id="b-g" dir="rtl"></div>
+    <div class="endcard" id="end">
+      <div class="brand">SEISMIC</div>
+      <div class="tag">the encrypted blockchain</div>
+      <div class="fa" dir="rtl">بلاکچین رمزنگاری‌شده</div>
+    </div>
+    <button class="bigplay" id="bigplay" type="button" aria-label="پخش انیمیشن">▶</button>
+    <div class="fallback" id="fallback" hidden>نمایش سه‌بعدی روی این دستگاه بارگذاری نشد. صفحه رو دوباره باز کن یا از یه مرورگر دیگه امتحان کن.</div>
+  </div>
+
+  <div class="transport">
+    <button id="play" type="button">▶ پخش</button>
+    <button id="restart" type="button" class="ghost">از اول</button>
+    <input id="scrub" type="range" min="0" max="23" step="0.01" value="0" aria-label="زمان انیمیشن">
+    <span class="time" id="time">0.0 / 23.0s</span>
+  </div>
+
+  <section style="display:grid;gap:10px">
+    <h2>سکانس‌ها</h2>
+    <ol class="shots" id="shots">
+      <li><button type="button" data-t="0">00:00</button><div><b>نمای باز</b><span>دوربین از بالا روی زمینِ کاشی‌های شش‌ضلعی پایین میاد. گولم وسط ایستاده، سفید و بنفش دو طرفش.</span></div></li>
+      <li><button type="button" data-t="3.4">00:03</button><div><b>معامله‌ی بنفش</b><span>بنفش یه گوی نورانی بالا می‌گیره. اطلاعات معامله (۵۰ ETH) روش آشکاره.</span></div></li>
+      <li><button type="button" data-t="5.6">00:06</button><div><b>ربات‌ها</b><span>ربات‌های چشم‌قرمز دورش جمع میشن و با لیزر اطلاعات رو می‌خونن. سفید هشدار میده.</span></div></li>
+      <li><button type="button" data-t="9">00:09</button><div><b>ضربه‌ی لرزه‌ای</b><span>نمای پایین به بالا از گولم. پاش رو می‌کوبه، موج لرزه‌ای از زمین رد میشه و ربات‌ها رو پرت می‌کنه.</span></div></li>
+      <li><button type="button" data-t="10.6">00:11</button><div><b>رمزنگاری</b><span>گوی به یه مکعب رمزشده با کاراکترهای درهم تبدیل میشه و از بالای صحنه به دست سفید می‌رسه.</span></div></li>
+      <li><button type="button" data-t="15">00:15</button><div><b>تحویل</b><span>سفید عینکش رو بالا می‌بره و لبخند می‌زنه. بنفش هم بالاخره کم میاره.</span></div></li>
+      <li><button type="button" data-t="19.6">00:20</button><div><b>لوگو</b><span>دوربین عقب میره و اسم SEISMIC ظاهر میشه.</span></div></li>
+    </ol>
+  </section>
+
+  <section class="notes">
+    <div>
+      <h2>پیام انیمیشن</h2>
+      <p>توی بلاکچین‌های معمولی همه می‌تونن جزئیات معامله رو قبل از ثبت ببینن و ربات‌ها ازش سوءاستفاده می‌کنن. Seismic داده‌های معامله رو رمزنگاری می‌کنه. گولم و لرزه هم به اسم پروژه اشاره دارن.</p>
+    </div>
+    <div>
+      <h2>قدم‌های بعدی</h2>
+      <ul>
+        <li>گرفتن خروجی ویدیو (MP4) برای توییتر و تلگرام</li>
+        <li>اضافه کردن موسیقی و صدای ضربه</li>
+        <li>نسخه‌ی عمودی ۹:۱۶ برای استوری و ریلز</li>
+        <li>دقیق‌تر کردن مدل کاراکترها</li>
+      </ul>
+    </div>
+  </section>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(() => {
+  if (!window.THREE) { document.getElementById('fallback').hidden = false; return; }
+  const T = THREE;
+  const END = 23, STOMP = 10.0;
+  const stage = document.getElementById('stage');
+  const canvas = document.getElementById('c');
+
+  let renderer;
+  try {
+    renderer = new T.WebGLRenderer({ canvas, antialias: true });
+  } catch (e) { document.getElementById('fallback').hidden = false; return; }
+  renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = T.PCFSoftShadowMap;
+  renderer.outputEncoding = T.sRGBEncoding;
+  renderer.toneMapping = T.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1.3;
+
+  const scene = new T.Scene();
+  scene.background = new T.Color(0x0c0a11);
+  scene.fog = new T.Fog(0x0c0a11, 16, 34);
+  const camera = new T.PerspectiveCamera(40, 16 / 9, 0.1, 100);
+
+  // ---------- helpers ----------
+  const lin = (hex) => new T.Color(hex).convertSRGBToLinear();
+  const M = (color, o = {}) => {
+    const m = new T.MeshStandardMaterial(Object.assign({ roughness: 0.75, metalness: 0, flatShading: true }, o));
+    m.color = lin(color);
+    if (o.emissive !== undefined) m.emissive = lin(o.emissive);
+    return m;
+  };
+  function add(parent, geo, mat, x = 0, y = 0, z = 0) {
+    const m = new T.Mesh(geo, mat);
+    m.position.set(x, y, z);
+    m.castShadow = true; m.receiveShadow = true;
+    parent.add(m);
+    return m;
+  }
+  function group(parent, x = 0, y = 0, z = 0) { const g = new T.Group(); g.position.set(x, y, z); parent.add(g); return g; }
+  function glowTex(inner, outer) {
+    const c = document.createElement('canvas'); c.width = c.height = 128;
+    const x = c.getContext('2d');
+    const g = x.createRadialGradient(64, 64, 0, 64, 64, 64);
+    g.addColorStop(0, inner); g.addColorStop(0.4, outer); g.addColorStop(1, 'rgba(0,0,0,0)');
+    x.fillStyle = g; x.fillRect(0, 0, 128, 128);
+    const t = new T.CanvasTexture(c); return t;
+  }
+  function glow(parent, tex, s, x, y, z, opacity = 1) {
+    const sp = new T.Sprite(new T.SpriteMaterial({ map: tex, blending: T.AdditiveBlending, depthWrite: false, transparent: true, opacity }));
+    sp.scale.set(s, s, 1); sp.position.set(x, y, z); parent.add(sp); return sp;
+  }
+  const clamp01 = (v) => Math.max(0, Math.min(1, v));
+  const ease = (v) => { v = clamp01(v); return v * v * (3 - 2 * v); };
+  const span = (t, a, b) => ease((t - a) / (b - a));
+  const lerp = (a, b, k) => a + (b - a) * k;
+
+  // ---------- lights ----------
+  scene.add(new T.HemisphereLight(0xbfb3d9, 0x1a1420, 0.55));
+  const key = new T.DirectionalLight(0xfff0e0, 1.25);
+  key.position.set(-6, 11, 8); key.castShadow = true;
+  key.shadow.mapSize.set(2048, 2048);
+  Object.assign(key.shadow.camera, { left: -11, right: 11, top: 11, bottom: -11, near: 1, far: 40 });
+  scene.add(key);
+  const violetLight = new T.PointLight(0xa259ff, 2.6, 9); violetLight.position.set(4.6, 3.2, -0.6); scene.add(violetLight);
+  const warmLight = new T.PointLight(0xffd9e6, 0.9, 8); warmLight.position.set(-4.6, 3.4, 2.4); scene.add(warmLight);
+  const rim = new T.DirectionalLight(0x8a6bff, 0.6); rim.position.set(0, 6, -10); scene.add(rim);
+
+  // ---------- hex ground ----------
+  const HEX = 0.5, golemXZ = { x: 0, z: -1.3 };
+  const hexGeo = new T.CylinderGeometry(HEX * 0.95, HEX * 0.95, 1, 6); hexGeo.translate(0, -0.5, 0);
+  const tiles = [];
+  const hw = Math.sqrt(3) * HEX;
+  for (let r = -18; r <= 18; r++) for (let q = -18; q <= 18; q++) {
+    const x = hw * (q + (r & 1) * 0.5), z = 1.5 * HEX * r;
+    if (Math.hypot(x, z) < 14) tiles.push({ x, z, d: Math.hypot(x - golemXZ.x, z - golemXZ.z), s: Math.sin(q * 12.9898 + r * 78.233) * 43758.5453 % 1 });
+  }
+  const ground = new T.InstancedMesh(hexGeo, M(0xffffff, { roughness: 0.9 }), tiles.length);
+  ground.receiveShadow = true; scene.add(ground);
+  const dummy = new T.Object3D(), cBase = lin(0x1d1926), cHot = lin(0x9b5cff), cTmp = new T.Color();
+  tiles.forEach((tl, i) => { ground.setColorAt(i, cBase); });
+
+  // shockwave ring
+  const ring = new T.Mesh(new T.RingGeometry(0.85, 1, 72), new T.MeshBasicMaterial({ color: 0xb37bff, transparent: true, opacity: 0, blending: T.AdditiveBlending, side: T.DoubleSide, depthWrite: false }));
+  ring.rotation.x = -Math.PI / 2; ring.position.set(golemXZ.x, 0.08, golemXZ.z); scene.add(ring);
+
+  // ambient dust
+  const dustN = 260, dustPos = new Float32Array(dustN * 3);
+  for (let i = 0; i < dustN; i++) { dustPos[i * 3] = (Math.random() - 0.5) * 22; dustPos[i * 3 + 1] = Math.random() * 7; dustPos[i * 3 + 2] = (Math.random() - 0.5) * 16; }
+  const dustGeo = new T.BufferGeometry(); dustGeo.setAttribute('position', new T.BufferAttribute(dustPos, 3));
+  const dust = new T.Points(dustGeo, new T.PointsMaterial({ color: 0xb48cff, size: 0.05, transparent: true, opacity: 0.6, depthWrite: false, blending: T.AdditiveBlending }));
+  scene.add(dust);
+
+  // ---------- person builder ----------
+  function person(o) {
+    const root = group(scene, o.x, 0, o.z); root.rotation.y = o.ry;
+    const skin = M(o.skin, { flatShading: false, roughness: 0.6 });
+    for (const s of [-1, 1]) {
+      add(root, new T.CylinderGeometry(0.16, 0.15, 0.85, 8), M(o.pants), s * 0.2, 0.43, 0);
+      add(root, new T.BoxGeometry(0.26, 0.14, 0.42), M(0x111014), s * 0.2, 0.07, 0.07);
+    }
+    const body = group(root, 0, 0.86, 0);
+    const shirt = M(o.shirt, { flatShading: false });
+    add(body, new T.CylinderGeometry(0.5, 0.42, 1.15, 14), shirt, 0, 0.57, 0);
+    const arms = {};
+    for (const s of [-1, 1]) {
+      add(body, new T.SphereGeometry(0.2, 12, 10), shirt, s * 0.5, 1.04, 0);
+      const p = group(body, s * 0.6, 1.06, 0);
+      add(p, new T.CylinderGeometry(0.12, 0.11, 0.8, 10), shirt, 0, -0.4, 0);
+      add(p, new T.SphereGeometry(0.11, 10, 8), skin, 0, -0.85, 0);
+      p.rotation.z = s * 0.12;
+      arms[s] = p;
+    }
+    add(body, new T.CylinderGeometry(0.14, 0.15, 0.3, 10), skin, 0, 1.2, 0);
+    const head = group(body, 0, 1.69, 0);
+    const skull = add(head, new T.SphereGeometry(0.5, 28, 20), skin); skull.scale.set(1, 1.08, 0.95);
+    for (const s of [-1, 1]) add(head, new T.SphereGeometry(0.1, 10, 8), skin, s * 0.49, -0.02, 0);
+    const eyes = group(head, 0, 0.03, 0.42);
+    const pupils = group(eyes);
+    for (const s of [-1, 1]) {
+      const w = add(eyes, new T.SphereGeometry(0.075, 12, 10), M(0xfbf2f0, { flatShading: false }), s * 0.18, 0, 0); w.scale.z = 0.5;
+      add(pupils, new T.SphereGeometry(0.045, 10, 8), M(o.iris, { flatShading: false }), s * 0.18, 0, 0.03);
+    }
+    const brows = {};
+    for (const s of [-1, 1]) brows[s] = add(head, new T.BoxGeometry(0.22, o.browH, 0.05), M(o.hair), s * 0.18, 0.18, 0.45);
+    const nose = add(head, new T.ConeGeometry(0.045, 0.14, 6), skin, 0, -0.07, 0.49); nose.rotation.x = Math.PI / 2;
+    const mouthFlat = add(head, new T.BoxGeometry(0.15, 0.025, 0.02), M(o.lips), 0, -0.23, 0.45);
+    const mouthSmile = add(head, new T.TorusGeometry(0.08, 0.016, 6, 14, Math.PI), M(o.lips), 0, -0.2, 0.45);
+    mouthSmile.rotation.z = Math.PI; mouthSmile.visible = false;
+    return { root, body, head, eyes, pupils, arms, brows, mouthFlat, mouthSmile, skin };
+  }
+
+  // ---------- VIOLET ----------
+  const V = person({ x: 3.3, z: 0.6, ry: -0.35, skin: 0xe8bfa9, shirt: 0x1a1520, pants: 0x121016, hair: 0x2c1d18, iris: 0x7e2f33, lips: 0x8e4a52, browH: 0.05 });
+  {
+    const hairM = M(0x33221c);
+    const cap = add(V.head, new T.SphereGeometry(0.55, 16, 12, 0, Math.PI * 2, 0, Math.PI * 0.52), hairM, 0, 0.05, -0.03); cap.rotation.x = -0.25;
+    const fr = [-0.36, -0.24, -0.12, 0, 0.12, 0.24, 0.36];
+    fr.forEach((x, i) => {
+      const c = add(V.head, new T.ConeGeometry(0.11, 0.42, 4), hairM, x, 0.33 - Math.abs(x) * 0.25, 0.37 - Math.abs(x) * 0.3);
+      c.rotation.set(Math.PI - 0.5, 0, (i % 2 ? 0.25 : -0.2) + x * 0.6);
+    });
+    [[-0.2, 0.55, 0.05, -0.6, 0.3], [0.15, 0.6, -0.05, 0.5, -0.2], [0.35, 0.45, -0.2, 0.9, 0.4], [-0.38, 0.42, -0.15, -0.9, -0.3], [0, 0.5, -0.35, 0.1, -0.9]].forEach(([x, y, z, rz, rx]) => {
+      const c = add(V.head, new T.ConeGeometry(0.1, 0.4, 4), hairM, x, y, z); c.rotation.set(rx, 0, rz);
+    });
+    // grumpy brows: inner ends lower
+    V.brows[-1].rotation.z = -0.28; V.brows[1].rotation.z = 0.28;
+    V.brows[-1].position.y = V.brows[1].position.y = 0.16;
+    // heavy lids
+    for (const s of [-1, 1]) add(V.eyes, new T.BoxGeometry(0.17, 0.05, 0.06), M(0xe8bfa9, { flatShading: false }), s * 0.18, 0.045, 0.02);
+    // glasses
+    const frame = M(0x1e1a22, { roughness: 0.4 });
+    const gl = group(V.head, 0, 0.03, 0.5);
+    for (const s of [-1, 1]) {
+      const cx = s * 0.18;
+      add(gl, new T.BoxGeometry(0.31, 0.045, 0.04), frame, cx, 0.11, 0);
+      add(gl, new T.BoxGeometry(0.31, 0.045, 0.04), frame, cx, -0.1, 0);
+      add(gl, new T.BoxGeometry(0.045, 0.25, 0.04), frame, cx - 0.14, 0, 0);
+      add(gl, new T.BoxGeometry(0.045, 0.25, 0.04), frame, cx + 0.14, 0, 0);
+      const lens = new T.Mesh(new T.PlaneGeometry(0.27, 0.19), new T.MeshStandardMaterial({ color: 0x8a6bb0, transparent: true, opacity: 0.35, roughness: 0.1, metalness: 0.3 }));
+      lens.position.set(cx, 0, 0.005); gl.add(lens);
+      const tmp = add(gl, new T.BoxGeometry(0.03, 0.03, 0.45), frame, s * 0.33, 0.08, -0.22);
+    }
+    add(gl, new T.BoxGeometry(0.08, 0.03, 0.03), frame, 0, 0.06, 0);
+    // purple aura + crystals + gold badge
+    V.aura = glow(V.root, glowTex('rgba(190,120,255,.9)', 'rgba(130,60,255,.35)'), 5.2, 0, 2.1, -0.7, 0.75);
+    V.crystals = [];
+    const edge = new T.LineBasicMaterial({ color: 0xece4ff, transparent: true, opacity: 0.8 });
+    [[1.0, 3.3, -0.2, 0.22], [-0.9, 3.7, -0.5, 0.16], [1.2, 1.4, 0.2, 0.18]].forEach(([x, y, z, s]) => {
+      const l = new T.LineSegments(new T.EdgesGeometry(new T.OctahedronGeometry(s, 0)), edge);
+      l.position.set(x, y, z); V.root.add(l); V.crystals.push(l);
+    });
+    const badge = group(V.root, -1.1, 1.0, 0.4);
+    add(badge, new T.CylinderGeometry(0.26, 0.26, 0.07, 5), M(0xd9a441, { metalness: 0.6, roughness: 0.35 })).rotation.x = Math.PI / 2;
+    for (const s of [-1, 1]) add(badge, new T.CylinderGeometry(0.045, 0.045, 0.09, 10), M(0xfff3c9), s * 0.09, 0.02, 0).rotation.x = Math.PI / 2;
+    V.badge = badge;
+  }
+
+  // ---------- WHITE ----------
+  const W = person({ x: -3.3, z: 0.6, ry: 0.35, skin: 0xefc6a6, shirt: 0xf3efea, pants: 0x2a2630, hair: 0x3b2418, iris: 0x4a3426, lips: 0x9a5a4f, browH: 0.065 });
+  {
+    const hairM = M(0x3b2418, { flatShading: false, roughness: 0.5 });
+    const cap = add(W.head, new T.SphereGeometry(0.535, 24, 14, 0, Math.PI * 2, 0, Math.PI * 0.45), hairM, 0, 0.08, -0.02); cap.rotation.x = -0.18;
+    const sweep = add(W.head, new T.BoxGeometry(0.62, 0.14, 0.28), hairM, 0.03, 0.42, 0.24); sweep.rotation.set(0.35, 0, -0.12);
+    const lock = add(W.head, new T.ConeGeometry(0.06, 0.28, 6), hairM, -0.12, 0.27, 0.45); lock.rotation.set(Math.PI - 0.3, 0, 0.35);
+    // sunglasses
+    const dark = M(0x111116, { metalness: 0.6, roughness: 0.15, flatShading: false });
+    W.glasses = group(W.head, 0, 0.03, 0.5);
+    for (const s of [-1, 1]) {
+      add(W.glasses, new T.BoxGeometry(0.3, 0.13, 0.04), dark, s * 0.18, 0, 0);
+      add(W.glasses, new T.BoxGeometry(0.025, 0.025, 0.45), dark, s * 0.34, 0.03, -0.22);
+    }
+    add(W.glasses, new T.BoxGeometry(0.08, 0.025, 0.03), dark, 0, 0.03, 0);
+    // collar, tie, pin
+    const white = M(0xffffff, { flatShading: false });
+    for (const s of [-1, 1]) { const c = add(W.body, new T.BoxGeometry(0.22, 0.2, 0.05), white, s * 0.13, 1.08, 0.33); c.rotation.set(-0.3, s * 0.4, s * 0.5); }
+    const tieM = M(0x1d1d23, { flatShading: false });
+    add(W.body, new T.BoxGeometry(0.1, 0.09, 0.05), tieM, 0, 1.0, 0.42);
+    const tie = add(W.body, new T.BoxGeometry(0.11, 0.6, 0.03), tieM, 0, 0.66, 0.44); tie.rotation.x = -0.07;
+    W.pin = add(W.body, new T.OctahedronGeometry(0.08, 0), M(0xe6a6c8, { emissive: 0xe67fb5, emissiveIntensity: 0.6, metalness: 0.2, roughness: 0.2 }), 0.3, 0.82, 0.42);
+    W.pin.scale.set(0.8, 1.3, 0.6);
+    W.brows[-1].rotation.z = 0.06; W.brows[1].rotation.z = -0.06;
+  }
+
+  // ---------- GOLEM ----------
+  const G = {};
+  {
+    const root = group(scene, golemXZ.x, 0, golemXZ.z); G.root = root;
+    const pal = { a: 0x5a4236, b: 0x6e5244, c: 0x4a3730, d: 0x8a6e5e, blue: 0x3e4a5c, light: 0xc3a996, dark: 0x2a2023 };
+    const rock = (parent, r, sx, sy, sz, col, x, y, z, rx = 0, ry = 0, rz = 0) => {
+      const m = add(parent, new T.DodecahedronGeometry(r, 0), M(col, { roughness: 0.9 }), x, y, z);
+      m.scale.set(sx, sy, sz); m.rotation.set(rx, ry, rz); return m;
+    };
+    G.legs = {};
+    for (const s of [-1, 1]) {
+      const leg = group(root, s * 0.6, 2.15, 0); G.legs[s] = leg;
+      rock(leg, 0.5, 1, 1.4, 1, s > 0 ? pal.b : pal.c, s * 0.08, -0.4, 0, 0, 0.3, -s * 0.2);
+      rock(leg, 0.45, 1, 1.5, 1, s > 0 ? pal.c : pal.a, s * 0.22, -1.2, 0, 0.2, 0.5, -s * 0.1);
+      const boot = add(leg, new T.BoxGeometry(0.95, 0.38, 1.15), M(0x4f3a31, { roughness: 0.9 }), s * 0.3, -1.97, 0.15);
+      boot.rotation.y = s * 0.15;
+      const top = add(leg, new T.BoxGeometry(0.85, 0.08, 0.9), M(s > 0 ? pal.light : pal.d), s * 0.3, -1.74, 0.1);
+      top.rotation.y = s * 0.15;
+    }
+    const upper = group(root, 0, 2.2, 0); G.upper = upper;
+    rock(upper, 0.55, 1.4, 0.8, 1, pal.dark, 0, 0.05, 0);
+    add(upper, new T.CylinderGeometry(1.0, 1.05, 0.35, 6), M(pal.b), 0, 0.35, 0).rotation.y = Math.PI / 6;
+    const chest = add(upper, new T.CylinderGeometry(1.35, 0.95, 1.4, 6), M(pal.a, { roughness: 0.85 }), 0, 1.25, 0);
+    chest.rotation.y = Math.PI / 6;
+    // chest plate + logo
+    const lc = document.createElement('canvas'); lc.width = lc.height = 256;
+    const x = lc.getContext('2d');
+    x.fillStyle = '#141114'; x.fillRect(0, 0, 256, 256);
+    x.strokeStyle = '#fff'; x.lineCap = 'round';
+    x.lineWidth = 20;
+    x.beginPath(); x.arc(68, 128, 66, -1.0, 1.0); x.stroke();
+    x.beginPath(); x.arc(188, 128, 66, Math.PI - 1.0, Math.PI + 1.0); x.stroke();
+    x.lineWidth = 9;
+    x.beginPath(); x.moveTo(52, 52); x.quadraticCurveTo(128, 28, 204, 52); x.stroke();
+    x.beginPath(); x.moveTo(52, 204); x.quadraticCurveTo(128, 228, 204, 204); x.stroke();
+    const logoTex = new T.CanvasTexture(lc); logoTex.encoding = T.sRGBEncoding;
+    G.logoMat = new T.MeshStandardMaterial({ map: logoTex, emissive: 0xffffff, emissiveMap: logoTex, emissiveIntensity: 0.6, roughness: 0.6 });
+    const plate = new T.Mesh(new T.PlaneGeometry(0.95, 0.8), G.logoMat);
+    plate.position.set(0, 1.35, 1.06); plate.rotation.x = 0.24; upper.add(plate); G.plate = plate;
+    // shoulders + arms
+    rock(upper, 0.6, 1, 0.9, 1, pal.blue, -1.45, 1.75, 0, 0.3, 0.2, 0);
+    rock(upper, 0.62, 1.05, 0.9, 1, pal.light, 1.45, 1.78, 0, 0.1, 0.6, 0.2);
+    rock(upper, 0.4, 1, 1.6, 1, pal.blue, -1.7, 0.95, 0.05, 0, 0.3, 0.1);
+    rock(upper, 0.36, 1, 1.5, 1, 0x5a4a50, -1.75, 0.05, 0.2, 0.15, 0.2, 0);
+    add(upper, new T.BoxGeometry(0.5, 0.5, 0.5), M(0x5a4a50), -1.7, -0.55, 0.3).rotation.set(0.2, 0.4, 0.1);
+    rock(upper, 0.4, 1, 1.5, 1, pal.c, 1.8, 0.95, -0.1, 0, 0.4, 0.35);
+    rock(upper, 0.35, 1, 1.5, 1, pal.b, 1.5, 0.25, 0.15, 0, 0.2, -0.9);
+    add(upper, new T.BoxGeometry(0.5, 0.45, 0.5), M(0x6a5650), 1.1, 0.15, 0.4).rotation.set(0.1, 0.5, 0.3);
+    // head
+    const head = group(upper, 0, 2.25, 0.05); G.head = head;
+    add(upper, new T.CylinderGeometry(0.25, 0.32, 0.3, 6), M(pal.c), 0, 1.98, 0);
+    rock(head, 0.42, 1, 1.1, 0.95, 0x5e463b, 0, 0, 0, 0.1, 0.3, 0);
+    G.eyeMat = new T.MeshStandardMaterial({ color: 0xffffff, emissive: 0xffffff, emissiveIntensity: 1 });
+    const eyeGlowTex = glowTex('rgba(255,255,255,1)', 'rgba(200,220,255,.4)');
+    G.eyeGlows = [];
+    for (const s of [-1, 1]) {
+      add(head, new T.SphereGeometry(0.055, 10, 8), G.eyeMat, s * 0.15, 0.05, 0.4);
+      G.eyeGlows.push(glow(head, eyeGlowTex, 0.45, s * 0.15, 0.05, 0.45, 0.8));
+    }
+    G.eyeLight = new T.PointLight(0xdfe8ff, 0.6, 3); G.eyeLight.position.set(0, 0.05, 0.7); head.add(G.eyeLight);
+  }
+
+  // ---------- transaction: orb -> encrypted cube ----------
+  const orbPos = new T.Vector3(2.7, 2.25, 1.35);
+  const catchPos = new T.Vector3(-2.75, 2.2, 1.35);
+  const orb = new T.Mesh(new T.IcosahedronGeometry(0.22, 1), new T.MeshStandardMaterial({ color: 0x7dfcff, emissive: 0x3fd8e8, emissiveIntensity: 1.4, roughness: 0.2, flatShading: true }));
+  scene.add(orb);
+  const orbGlow = glow(orb, glowTex('rgba(125,252,255,.9)', 'rgba(60,200,230,.3)'), 1.4, 0, 0, 0, 0.9);
+
+  const glyphC = document.createElement('canvas'); glyphC.width = glyphC.height = 128;
+  const gx = glyphC.getContext('2d');
+  const glyphTex = new T.CanvasTexture(glyphC);
+  const HEXCH = '0123456789abcdef#%&@$*';
+  function drawGlyphs(seed) {
+    gx.fillStyle = '#1a0f2c'; gx.fillRect(0, 0, 128, 128);
+    gx.font = 'bold 18px monospace'; gx.fillStyle = '#c99bff';
+    let s = seed;
+    for (let r = 0; r < 6; r++) for (let c = 0; c < 7; c++) { s = (s * 9301 + 49297) % 233280; gx.fillText(HEXCH[s % HEXCH.length], 6 + c * 17, 20 + r * 20); }
+    glyphTex.needsUpdate = true;
+  }
+  drawGlyphs(1);
+  const cube = new T.Group(); scene.add(cube);
+  const cubeMesh = new T.Mesh(new T.BoxGeometry(0.42, 0.42, 0.42), new T.MeshStandardMaterial({ map: glyphTex, emissive: 0xffffff, emissiveMap: glyphTex, emissiveIntensity: 0.9, roughness: 0.4 }));
+  cube.add(cubeMesh);
+  const cage = new T.LineSegments(new T.EdgesGeometry(new T.BoxGeometry(0.6, 0.6, 0.6)), new T.LineBasicMaterial({ color: 0xb37bff, transparent: true, opacity: 0.9 }));
+  cube.add(cage);
+  const cubeGlow = glow(cube, glowTex('rgba(180,120,255,.8)', 'rgba(130,60,255,.3)'), 1.6, 0, 0, 0, 0.8);
+
+  function labelSprite(text, color) {
+    const c = document.createElement('canvas'); c.width = 512; c.height = 96;
+    const x = c.getContext('2d');
+    x.fillStyle = 'rgba(10,8,16,.75)'; x.fillRect(0, 0, 512, 96);
+    x.strokeStyle = color; x.lineWidth = 3; x.strokeRect(2, 2, 508, 92);
+    x.font = '600 34px monospace'; x.fillStyle = color; x.textAlign = 'center'; x.textBaseline = 'middle';
+    x.fillText(text, 256, 50);
+    const sp = new T.Sprite(new T.SpriteMaterial({ map: new T.CanvasTexture(c), transparent: true, depthWrite: false }));
+    sp.scale.set(1.6, 0.3, 1); scene.add(sp); return sp;
+  }
+  const plainLabel = labelSprite('SEND 50 ETH → 0x7a3f…e91c', '#7dfcff');
+  const encLabel = labelSprite('0x█9f#a▒…c4&1e▓', '#c99bff');
+
+  // ---------- bots ----------
+  const botOffsets = [[-1.25, 0.5, 0.2], [-0.45, 1.35, 0.45], [0.55, 1.45, 1.15], [-1.0, -0.45, 1.05]];
+  const bots = botOffsets.map(([ox, oy, oz], i) => {
+    const b = new T.Group();
+    add(b, new T.BoxGeometry(0.34, 0.3, 0.3), M(0x2a2a33, { metalness: 0.5, roughness: 0.4 }));
+    const eyeM = new T.MeshStandardMaterial({ color: 0xff3344, emissive: 0xff2233, emissiveIntensity: 1.6 });
+    add(b, new T.BoxGeometry(0.22, 0.06, 0.02), eyeM, 0, 0.03, 0.16);
+    add(b, new T.CylinderGeometry(0.01, 0.01, 0.16, 4), M(0x55555f), 0, 0.23, 0);
+    add(b, new T.SphereGeometry(0.03, 6, 6), eyeM, 0, 0.32, 0);
+    scene.add(b);
+    const home = orbPos.clone().add(new T.Vector3(ox, oy, oz));
+    const away = home.clone().sub(new T.Vector3(golemXZ.x, 0, golemXZ.z)); away.y = 0; away.normalize().multiplyScalar(6.5); away.y = 4.5;
+    const laser = new T.Line(new T.BufferGeometry().setFromPoints([new T.Vector3(), new T.Vector3()]), new T.LineBasicMaterial({ color: 0xff3344, transparent: true, opacity: 0 }));
+    scene.add(laser);
+    return { b, home, away, eyeM, laser, ph: i * 1.7 };
+  });
+
+  // ---------- camera shots ----------
+  const V3 = (x, y, z) => new T.Vector3(x, y, z);
+  const shots = [
+    [0, V3(0, 7, 17), V3(0, 2.5, 0)],
+    [3, V3(1, 3.6, 11), V3(0, 2.4, 0)],
+    [4.2, V3(4.7, 3.0, 5.8), V3(3.0, 2.4, 0.6)],
+    [5.6, V3(4.4, 3.2, 6.3), V3(3.0, 2.5, 0.6)],
+    [7.0, V3(1.2, 3.4, 8.8), V3(1.0, 2.5, 0)],
+    [8.8, V3(0.4, 3.2, 9.6), V3(0.4, 2.6, 0)],
+    [9.4, V3(0, 0.7, 6.0), V3(0, 3.4, -1.3)],
+    [10.6, V3(0, 1.0, 6.8), V3(0, 3.1, -1.3)],
+    [11.8, V3(0, 4.3, 12.5), V3(0, 2.4, 0)],
+    [14.4, V3(-1, 3.6, 10), V3(-1.5, 2.4, 0)],
+    [15.4, V3(-4.6, 3.0, 5.9), V3(-3.0, 2.4, 0.6)],
+    [17.0, V3(-3.8, 3.1, 6.6), V3(-2.6, 2.4, 0.6)],
+    [17.8, V3(4.0, 3.0, 6.4), V3(2.9, 2.4, 0.6)],
+    [19.6, V3(0, 6, 16), V3(0, 2.6, 0)],
+    [23, V3(0, 7.5, 19), V3(0, 2.6, 0)],
+  ];
+  const camTarget = new T.Vector3();
+  function shotAt(t) {
+    let i = 0; while (i < shots.length - 2 && t > shots[i + 1][0]) i++;
+    const [t0, p0, q0] = shots[i], [t1, p1, q1] = shots[i + 1];
+    const k = ease((t - t0) / (t1 - t0));
+    camera.position.lerpVectors(p0, p1, k); camTarget.lerpVectors(q0, q1, k);
+  }
+
+  // ---------- dialogue ----------
+  const lines = [
+    { who: 'v', name: 'بنفش', a: 3.6, b: 5.8, text: 'یه معامله‌ی بزرگ دارم… الان می‌فرستمش.' },
+    { who: 'w', name: 'سفید', a: 6.8, b: 9.1, text: 'صبر کن! ربات‌ها دارن همه‌چیزش رو می‌خونن.' },
+    { who: 'g', name: 'گولم', a: 11.0, b: 13.9, text: 'اینجا Seismicه. معامله‌ها رمزنگاری‌شده‌ان.' },
+    { who: 'w', name: 'سفید', a: 15.1, b: 17.5, text: 'رسید. و هیچ‌کس نفهمید چی بود.' },
+    { who: 'v', name: 'بنفش', a: 17.9, b: 19.6, text: '…خب، این یکی باحال بود.' },
+  ];
+  const bubbles = { v: document.getElementById('b-v'), w: document.getElementById('b-w'), g: document.getElementById('b-g') };
+  const anchors = { v: () => V.head, w: () => W.head, g: () => G.head };
+  const tmpV = new T.Vector3();
+  function updateBubbles(t, active) {
+    for (const k of Object.keys(bubbles)) {
+      const el = bubbles[k];
+      const l = active ? lines.find((l) => l.who === k && t >= l.a && t < l.b) : null;
+      if (!l) { el.classList.remove('show'); continue; }
+      if (el.dataset.line !== l.text) { el.innerHTML = ''; const n = document.createElement('span'); n.className = 'who'; n.textContent = l.name; el.append(n, document.createTextNode(l.text)); el.dataset.line = l.text; }
+      anchors[k]().getWorldPosition(tmpV); tmpV.y += k === 'g' ? 0.75 : 0.85;
+      tmpV.project(camera);
+      const w = stage.clientWidth, h = stage.clientHeight;
+      let x = (tmpV.x + 1) / 2 * w, y = (1 - tmpV.y) / 2 * h;
+      const bw = el.offsetWidth, bh = el.offsetHeight;
+      x = Math.max(bw / 2 + 8, Math.min(w - bw / 2 - 8, x));
+      y = Math.max(bh + 8, Math.min(h - 8, y));
+      el.style.left = x + 'px'; el.style.top = y + 'px';
+      el.classList.add('show');
+    }
+  }
+
+  // ---------- scene state at time t ----------
+  let lastGlyph = -1;
+  function update(t, clock, story) {
+    // breathing / idle
+    V.body.scale.y = 1 + Math.sin(clock * 1.5) * 0.012;
+    W.body.scale.y = 1 + Math.sin(clock * 1.5 + 1.7) * 0.012;
+    G.upper.position.y = 2.2 + Math.sin(clock * 1.0 + 3) * 0.03;
+    V.crystals.forEach((c, i) => { c.rotation.y = clock * (0.6 + i * 0.2); c.position.y += Math.sin(clock * 1.2 + i * 2) * 0.002; });
+    V.badge.rotation.y = Math.sin(clock * 0.8) * 0.6; V.badge.position.y = 1.0 + Math.sin(clock * 1.1) * 0.08;
+    const blinkV = (clock % 4.3) < 0.12 ? 0.1 : 1; V.eyes.scale.y = blinkV;
+    W.eyes.scale.y = (clock % 5.1) < 0.12 ? 0.1 : 1;
+    W.pin.rotation.y = clock * 0.8;
+    dust.rotation.y = clock * 0.02;
+
+    if (!story) t = 0;
+
+    // violet: raise orb, nervous, smirk
+    const raise = span(t, 3.3, 3.9) * (1 - span(t, 11.6, 12.4));
+    V.arms[-1].rotation.x = -1.25 * raise; V.arms[-1].rotation.z = -0.12 - 0.15 * raise;
+    const nervous = span(t, 6.2, 6.6) * (1 - span(t, 10.4, 10.8));
+    V.head.rotation.y = Math.sin(clock * 3.2) * 0.18 * nervous + 0.15 * span(t, 11, 11.6) * (1 - span(t, 16, 17));
+    V.pupils.position.x = -0.03 * nervous * Math.sin(clock * 2.3);
+    V.aura.material.opacity = 0.6 + 0.15 * Math.sin(clock * 2) + nervous * 0.25 * Math.sin(clock * 18);
+    const awe = span(t, 10.1, 10.4) * (1 - span(t, 12, 12.8));
+    V.brows[-1].position.y = V.brows[1].position.y = 0.16 + awe * 0.05;
+    V.brows[-1].rotation.z = -0.28 * (1 - awe); V.brows[1].rotation.z = 0.28 * (1 - awe);
+    const smirk = t > 18.1;
+    V.mouthSmile.visible = smirk; V.mouthFlat.visible = !smirk;
+    V.mouthSmile.rotation.z = Math.PI + 0.25; V.mouthSmile.scale.set(0.8, 0.5, 1); V.mouthSmile.position.x = 0.03;
+
+    // white: warn, catch, glasses up, smile
+    const warn = span(t, 6.6, 7.0) * (1 - span(t, 9.0, 9.6));
+    W.arms[1].rotation.z = 0.12 + 1.1 * warn; W.arms[1].rotation.x = -0.3 * warn;
+    const cat = span(t, 13.4, 14.2) * (1 - span(t, 18.5, 19.4));
+    W.arms[-1].rotation.x = -1.2 * cat; W.arms[-1].rotation.z = -0.12 - 0.1 * cat;
+    const lift = span(t, 15.0, 15.4) * (1 - span(t, 17.4, 17.8));
+    W.glasses.position.y = 0.03 + 0.2 * lift; W.glasses.rotation.x = -0.35 * lift;
+    W.head.rotation.z = 0.08 * lift;
+    W.head.rotation.y = -0.2 * span(t, 6.6, 7.0) * (1 - span(t, 9.4, 10)) + 0.1 * lift;
+    const wSmile = t > 15.2;
+    W.mouthSmile.visible = wSmile; W.mouthFlat.visible = !wSmile; W.mouthSmile.scale.set(0.9, 0.55, 1);
+
+    // golem: look, lift leg, stomp
+    const look = span(t, 6.8, 7.6) * (1 - span(t, 9.0, 9.4));
+    G.head.rotation.y = -0.45 * look;
+    const legUp = span(t, 9.1, 9.75) * (1 - span(t, 9.85, 10.0));
+    G.legs[1].rotation.x = -0.75 * legUp; G.legs[1].position.y = 2.15 + 0.35 * legUp;
+    G.upper.rotation.z = 0.08 * legUp; G.upper.rotation.x = 0.1 * legUp;
+    const dip = t > STOMP ? Math.exp(-(t - STOMP) * 5) * Math.sin((t - STOMP) * 12) : 0;
+    G.upper.position.y -= 0.12 * Math.max(0, dip);
+    const eyeK = 1 + 2.4 * span(t, 9.2, 9.5) * (1 - 0.5 * span(t, 12, 14));
+    G.eyeMat.emissiveIntensity = eyeK; G.eyeLight.intensity = 0.5 * eyeK;
+    G.eyeGlows.forEach((g) => { g.scale.setScalar(0.22 + 0.08 * eyeK); g.material.opacity = 0.5 + 0.12 * eyeK; });
+    const flash = t > STOMP ? Math.exp(-(t - STOMP) * 1.3) : 0;
+    G.logoMat.emissiveIntensity = 0.6 + 2.6 * flash + 0.5 * span(t, 11, 12);
+
+    // ground wave
+    const wt = t - STOMP;
+    for (let i = 0; i < tiles.length; i++) {
+      const tl = tiles[i];
+      let h = 0.035 * Math.sin(tl.d * 1.3 - clock * 1.1 + tl.s * 6);
+      let hot = 0;
+      if (wt > 0 && wt < 6) {
+        const d1 = tl.d - wt * 7, d2 = tl.d - (wt - 0.3) * 7;
+        const a = Math.exp(-wt * 0.45);
+        const w1 = Math.exp(-d1 * d1 / 0.8) * 0.6 * a, w2 = Math.exp(-d2 * d2 / 0.5) * 0.25 * a;
+        h += w1 + w2; hot = clamp01((w1 + w2) * 2.2);
+      }
+      dummy.position.set(tl.x, h, tl.z); dummy.updateMatrix();
+      ground.setMatrixAt(i, dummy.matrix);
+      cTmp.copy(cBase).lerp(cHot, hot); ground.setColorAt(i, cTmp);
+    }
+    ground.instanceMatrix.needsUpdate = true; ground.instanceColor.needsUpdate = true;
+    ring.material.opacity = wt > 0 && wt < 2.2 ? (1 - wt / 2.2) * 0.9 : 0;
+    ring.scale.setScalar(1 + Math.max(0, wt) * 7);
+
+    // orb / cube
+    const orbIn = span(t, 3.4, 3.9), orbOut = span(t, 10.7, 11.2);
+    const orbS = orbIn * (1 - orbOut);
+    orb.visible = orbS > 0.01; orb.scale.setScalar(orbS);
+    orb.position.copy(orbPos); orb.position.y += Math.sin(clock * 2) * 0.05; orb.rotation.y = clock;
+    plainLabel.visible = orbS > 0.5 && t < 10.7;
+    plainLabel.position.copy(orbPos).add(tmpV.set(0, 0.55, 0));
+    plainLabel.material.opacity = span(t, 4.2, 4.6);
+    const cubeS = span(t, 10.8, 11.3);
+    cube.visible = cubeS > 0.01; cube.scale.setScalar(cubeS);
+    const fly = span(t, 12.2, 14.4);
+    cube.position.lerpVectors(orbPos, catchPos, fly); cube.position.y += Math.sin(fly * Math.PI) * 1.8;
+    cube.rotation.set(clock * 0.7, clock * 1.1 + fly * 6, 0);
+    cage.rotation.set(-clock * 1.3, clock * 0.5, 0);
+    const g = Math.floor(clock * 12);
+    if (g !== lastGlyph && cube.visible) { drawGlyphs(g * 7 + 3); lastGlyph = g; }
+    encLabel.visible = cube.visible && t < 12.4;
+    encLabel.material.opacity = span(t, 11.0, 11.4) * (1 - span(t, 12.0, 12.4));
+    encLabel.position.copy(orbPos).add(tmpV.set(0, 0.6, 0));
+
+    // bots
+    bots.forEach((bt) => {
+      const appear = span(t, 5.6 + bt.ph * 0.15, 6.3 + bt.ph * 0.15);
+      const tb = t - (STOMP + 0.55);
+      if (tb > 0) {
+        bt.b.position.copy(bt.home).addScaledVector(bt.away, tb); bt.b.position.y -= 4.9 * tb * tb;
+        bt.b.rotation.set(tb * 9, tb * 7, tb * 5);
+        bt.eyeM.emissiveIntensity = Math.max(0, 1.6 - tb * 6);
+        bt.b.visible = tb < 2.2;
+      } else {
+        bt.b.position.copy(bt.home); bt.b.position.y += Math.sin(clock * 2.2 + bt.ph) * 0.08;
+        bt.b.lookAt(orb.position);
+        bt.eyeM.emissiveIntensity = 1.6;
+        bt.b.visible = appear > 0.01;
+      }
+      bt.b.scale.setScalar(Math.max(0.001, appear));
+      const las = t > 6.5 && tb < 0 && orb.visible;
+      bt.laser.visible = las;
+      if (las) {
+        const p = bt.laser.geometry.attributes.position;
+        p.setXYZ(0, bt.b.position.x, bt.b.position.y + 0.03, bt.b.position.z); p.setXYZ(1, orb.position.x, orb.position.y, orb.position.z); p.needsUpdate = true;
+        bt.laser.material.opacity = 0.55 + 0.35 * Math.sin(clock * 30 + bt.ph);
+      }
+    });
+  }
+
+  // ---------- transport ----------
+  const playBtn = document.getElementById('play'), restartBtn = document.getElementById('restart');
+  const scrub = document.getElementById('scrub'), timeEl = document.getElementById('time');
+  const bigplay = document.getElementById('bigplay'), endEl = document.getElementById('end');
+  let mode = 'intro', t = 0, clock = 0, orbitA = 0;
+  function setMode(m) {
+    mode = m;
+    playBtn.textContent = m === 'play' ? '❚❚ توقف' : '▶ پخش';
+    bigplay.hidden = m !== 'intro';
+  }
+  function playPause() {
+    if (mode === 'play') setMode('paused');
+    else { if (mode === 'intro' || mode === 'ended' || t >= END) t = 0; setMode('play'); }
+  }
+  playBtn.addEventListener('click', playPause);
+  bigplay.addEventListener('click', playPause);
+  restartBtn.addEventListener('click', () => { t = 0; setMode('play'); });
+  scrub.addEventListener('input', () => { t = parseFloat(scrub.value); setMode('paused'); });
+  document.querySelectorAll('#shots button').forEach((b) => b.addEventListener('click', () => {
+    t = parseFloat(b.dataset.t); setMode('play');
+    stage.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }));
+
+  function resize() {
+    const w = stage.clientWidth, h = stage.clientHeight;
+    renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix();
+  }
+  new ResizeObserver(resize).observe(stage); resize();
+
+  let prev = performance.now(), shakeSeed = 0;
+  function frame(now) {
+    const dt = Math.min(0.05, (now - prev) / 1000); prev = now;
+    clock += dt;
+    if (mode === 'play') { t += dt; if (t >= END) { t = END; setMode('ended'); } }
+    const story = mode !== 'intro';
+    update(t, clock, story);
+    if (mode === 'intro' || mode === 'ended') {
+      orbitA += dt * 0.12;
+      const r = mode === 'intro' ? 15 : 19.5, base = mode === 'intro' ? 0 : 0;
+      if (mode === 'ended') { shotAt(END); const d = camera.position.clone(); camera.position.set(Math.sin(orbitA) * r, d.y, Math.cos(orbitA) * r); }
+      else { camera.position.set(Math.sin(orbitA) * r, 5.2, Math.cos(orbitA) * r); camTarget.set(0, 2.4, 0); }
+    } else {
+      orbitA = 0;
+      shotAt(t);
+      const s = t - STOMP;
+      if (s > 0 && s < 0.9) { const a = 0.16 * (1 - s / 0.9); camera.position.x += Math.sin(s * 71) * a; camera.position.y += Math.sin(s * 53 + 1) * a; }
+    }
+    camera.lookAt(camTarget);
+    renderer.render(scene, camera);
+    updateBubbles(t, story && mode !== 'ended');
+    endEl.classList.toggle('show', story && t >= 19.8);
+    if (mode === 'play' || mode === 'ended') scrub.value = t;
+    timeEl.textContent = t.toFixed(1) + ' / ' + END.toFixed(1) + 's';
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+  window.__seismic = { seek: (v) => { t = v; setMode('paused'); } };
+})();
+</script>
